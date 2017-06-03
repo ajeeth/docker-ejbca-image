@@ -1,0 +1,7 @@
+/system-property=org.apache.tomcat.util.buf.UDecoder.ALLOW_ENCODED_SLASH:add(value=true)
+/system-property=org.apache.catalina.connector.CoyoteAdapter.ALLOW_BACKSLASH:add(value=true)
+/system-property=org.apache.catalina.connector.URI_ENCODING:add(value="UTF-8")
+/system-property=org.apache.catalina.connector.USE_BODY_ENCODING_FOR_QUERY_STRING:add(value=true)
+/subsystem=webservices:write-attribute(name=wsdl-host, value=jbossws.undefined.host)
+/subsystem=webservices:write-attribute(name=modify-wsdl-address, value=true)
+:reload

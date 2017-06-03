@@ -1,0 +1,7 @@
+/system-property=ejbca_smtp_enabled:add(value=%smtpserver.enabled%)
+if (result.value == true) of /system-property=ejbca_smtp_enabled:read-resource
+  /socket-binding-group=standard-sockets/remote-destination-outbound-socket-binding=ejbca-mail-smtp:add(port=%smtpserver.port%, host="%smtpserver.host%")
+  /subsystem=mail/mail-session="java:/EjbcaMail":add(jndi-name=java:/EjbcaMail, from="%smtpserver.from%")
+  /subsystem=mail/mail-session="java:/EjbcaMail"/server=smtp:add(outbound-socket-binding-ref=ejbca-mail-smtp, tls=%smtpserver.use_tls%%smtpserver.credentials%)
+end-if
+:shutdown(restart=true)

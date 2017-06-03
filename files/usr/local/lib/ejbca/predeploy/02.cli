@@ -1,0 +1,5 @@
+/subsystem=remoting/http-connector=http-remoting-connector:remove
+/subsystem=remoting/http-connector=http-remoting-connector:add(connector-ref="remoting",security-realm="ApplicationRealm")
+/socket-binding-group=standard-sockets/socket-binding=remoting:add(port="4447")
+/subsystem=undertow/server=default-server/http-listener=remoting:add(socket-binding=remoting)
+:reload

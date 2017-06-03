@@ -1,0 +1,6 @@
+/core-service=management/security-realm=SSLRealm:add()
+/core-service=management/security-realm=SSLRealm/server-identity=ssl:add(keystore-path="${jboss.server.config.dir}/keystore/keystore.jks", keystore-password="%httpsserver.password%", alias="%httpsserver.hostname%")
+/core-service=management/security-realm=SSLRealm/authentication=truststore:add(keystore-path="${jboss.server.config.dir}/keystore/truststore.jks", keystore-password="%java.trustpassword%")
+/socket-binding-group=standard-sockets/socket-binding=httpspriv:add(port="8443",interface="httpspriv")
+/socket-binding-group=standard-sockets/socket-binding=httpspub:add(port="8442", interface="httpspub")
+:shutdown(restart=true)

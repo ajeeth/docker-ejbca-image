@@ -1,0 +1,10 @@
+#
+# Build configuration for 'ejbca' container
+#
+
+version: "3"
+
+services:
+  ejbca:
+    build: .
+    image: dataknightllc/ejbca:latest
