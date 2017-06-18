@@ -1,7 +1,0 @@
-/interface=http:add(inet-address="0.0.0.0")
-/interface=httpspub:add(inet-address="0.0.0.0")
-/interface=httpspriv:add(inet-address="0.0.0.0")
-/socket-binding-group=standard-sockets/socket-binding=http:add(port="8080",interface="http")
-/subsystem=undertow/server=default-server/http-listener=http:add(socket-binding=http)
-/subsystem=undertow/server=default-server/http-listener=http:write-attribute(name=redirect-socket, value="httpspriv")
-:reload

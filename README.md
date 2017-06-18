@@ -39,6 +39,18 @@ Below is a sample `docker-compose.yml` file for your reference:
 version: "3"
 
 services:
+  mariadb:
+    container_name: mariadb
+    image: dataknightllc/mariadb:stable
+    volumes:
+      - /opt/docker/mariadb/rsyslog:/etc/rsyslog/conf.d
+      - /opt/docker/mariadb/data:/var/lib/mysql
+    ports:
+      - 3306:3306
+    environment:
+      TZ: ${TZ:-UTC}
+      SECRETS_FOLDER: /run/secrets
+  
   ejbca:
     container_name: ejbca
     image: dataknightllc/ejbca:stable
@@ -79,6 +91,9 @@ files created below should be owned by the **root** user and set to mode 0600.  
 described below are assigned values each on a single line using _setting=value_ syntax.  If the value of any setting
 contains spaces, be sure to wrap it in double quote (") marks.  If you choose to create a file, it **must** contain
 all of the settings specified.
+
+**NOTE:** If you choose to supply your own password for any of the settings listed below, it must be a **minimum** of
+6 characters long.
 
 __MySQL User Customization__
 If you wish to set your own password for the **root** and/or **ejbca** user, simply create a new file corresponding

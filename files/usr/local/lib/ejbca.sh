@@ -3,70 +3,9 @@
 #
 
 # Setup shared variables
-export PATH=$PATH:/opt/ejbca/bin
 export EJBCA_HOME="/opt/ejbca"
 export EJBCA_DATADIR="/var/lib/ejbca"
-export EJBCA_INITDIR="${EJBCA_HOME}/.init"
-export EJBCA_DATA_INITDIR="${EJBCA_DATADIR}/.init"
-export EJBCA_VAULTDIR="${EJBCA_DATADIR}/.vault"
-export EJBCA_LOG="/var/log/ejbca.log"
-
-#
-# ejbca_init()
-#   Initializes and deploys EJBCA if it has not been set up already
-#
-ejbca_init() {
-  # Already initialized
-  if [ -f "${EJBCA_INITDIR}/ready" ]; then
-    return 0
-  fi
-  echo "Initializing EJBCA server..."
-
-  # Create required data folders
-  for d in wildfly/keystore p12 conf/logdevices conf/plugins; do
-    if [ ! -d "${EJBCA_DATADIR}/$d" ]; then
-      mkdir -p "${EJBCA_DATADIR}/$d"
-    fi
-  done
-
-  # Copy distribution files (if necessary)
-  for f in database.properties ejbca.properties; do
-    if [ ! -f "${EJBCA_DATADIR}/conf/$f" ]; then
-      cp "/opt/ejbca/conf.dist/$f" "${EJBCA_DATADIR}/conf/"
-    fi
-  done
-
-  # Update folder permissions
-  chown -hR wildfly:wildfly "${EJBCA_DATADIR}"
-  chmod 750 "${EJBCA_DATADIR}/conf" "${EJBCA_DATADIR}/p12" "${EJBCA_DATADIR}/wildfly/keystore"
-
-  # Create init dirs
-  if [ ! -d "${EJBCA_INITDIR}" ]; then
-    mkdir -p "${EJBCA_INITDIR}"
-  fi
-  chown -hR root:root "${EJBCA_INITDIR}"
-  if [ ! -d "${EJBCA_DATA_INITDIR}" ]; then
-    mkdir -p "${EJBCA_DATA_INITDIR}"
-  fi
-  chown -hR root:root "${EJBCA_DATA_INITDIR}"
-
-  # Create vault dir
-  if [ ! -d "${EJBCA_VAULTDIR}" ]; then
-    mkdir -p "${EJBCA_VAULTDIR}"
-  fi
-  chown -hR root:root "${EJBCA_VAULTDIR}"
-  chmod 750 "${EJBCA_VAULTDIR}"
-
-  # Deploy EJBCA
-  ejbca_pre_deploy
-  ejbca_deploy
-  ejbca_post_deploy
-
-  # Complete
-  echo "  --> EJBCA server initialized. Check the '${EJBCA_LOG}' file for details."
-  touch "${EJBCA_INITDIR}/ready"
-  return 0
-}
+export PATH=$PATH:${EJBCA_HOME}/bin
 
 #
 # ejbca_create_ca()
@@ -79,9 +18,8 @@ ejbca_create_ca() {
   fi
   echo "  Creating certificate authority..."
 
-  # Read properties to set up the CA
-  ca_properties_file="${EJBCA_VAULTDIR}/ca.properties"
-  if [ ! -f "${ca_properties_file}" ]; then
+  # Configure properties file
+
     echo 'ca.name="Root Certificate Authority"' >"${ca_properties_file}"
     echo 'ca.dn="CN=Root Certificate Authority"' >>"${ca_properties_file}"
     echo 'ca.keytype=RSA' >>"${ca_properties_file}"
@@ -90,26 +28,18 @@ ejbca_create_ca() {
     echo 'ca.validity=7300' >>"${ca_properties_file}"
     echo 'ca.policy=null' >>"${ca_properties_file}"
     echo "ca.tokenpassword=\"$(openssl rand 16 -base64)\"" >>"${ca_properties_file}"
-  fi
-  java_properties_file="${EJBCA_VAULTDIR}/java.properties"
-  if [ ! -f "${java_properties_file}" ]; then
+
     echo "java.trustpassword=\"$(openssl rand 16 -base64)\"" >"${java_properties_file}"
-  fi
-  superadmin_properties_file="${EJBCA_VAULTDIR}/superadmin.properties"
-  if [ ! -f "${superadmin_properties_file}" ]; then
+
     echo 'superadmin.cn=admin' >"${superadmin_properties_file}"
     echo 'superadmin.dn="CN=admin"' >>"${superadmin_properties_file}"
     echo "superadmin.password=\"$(openssl rand 16 -base64)\"" >>"${superadmin_properties_file}"
     echo 'superadmin.batch=true' >>"${superadmin_properties_file}"
-  fi
-  httpsserver_properties_file="${EJBCA_VAULTDIR}/httpsserver.properties"
-  if [ ! -f "${httpsserver_properties_file}" ]; then
+
     echo 'httpsserver.hostname=ejbca' >"${httpsserver_properties_file}"
     echo 'httpsserver.dn="CN=ejbca"' >>"${httpsserver_properties_file}"
     echo "httpsserver.password=\"$(openssl rand 16 -base64)\"" >>"${httpsserver_properties_file}"
-  fi
-  smtpserver_properties_file="${EJBCA_VAULTDIR}/smtpserver.properties"
-  if [ ! -f "${smtpserver_properties_file}" ]; then
+
     echo 'smtpserver.enabled=false' >"${smtpserver_properties_file}"
     echo 'smtpserver.port=25' >>"${smtpserver_properties_file}"
     echo 'smtpserver.host=localhost' >>"${smtpserver_properties_file}"
@@ -117,14 +47,30 @@ ejbca_create_ca() {
     echo 'smtpserver.user=' >>"${smtpserver_properties_file}"
     echo 'smtpserver.password=' >>"${smtpserver_properties_file}"
     echo 'smtpserver.use_tls=false' >>"${smtpserver_properties_file}"
-  fi
+
+
+
+
+#(cli) ca init &quot;${ca.name}&quot; &quot;${ca.dn}&quot; ${ca.tokentype} ${ca.tokenpassword} ${ca.keyspec} ${ca.keytype} ${ca.validity} ${ca.policy} ${ca.signaturealgorithm} ${install.catoken.command} ${install.certprofile.command} -superadmincn &quot;${superadmin.cn}&quot;"
+#(cli) ra addendentity tomcat --password ${httpsserver.password} &quot;${httpsserver.dn}&quot; --altname &quot;${httpsserver.an}&quot; &quot;${ca.name}&quot; 1 JKS --certprofile SERVER
+#(cli) ra setclearpwd tomcat ${httpsserver.password}
+#(cli) batch tomcat
+
+#(cli) ra addendentity superadmin --password ${superadmin.password} &quot;${superadmin.dn}&quot; &quot;${ca.name}&quot; 1 ${superadmin.keystoretype}"
+#(cli) ra setclearpwd superadmin ${superadmin.password}
+#(cli) batch superadmin
+
+#(cli) ca getcacert &quot;${ca.name}&quot; ${java.io.tmpdir}/rootca.der -der
+#(keytool) -v -alias &quot;${ca.name}&quot; -import -trustcacerts -file '${java.io.tmpdir}/rootca.der' -keystore '${trust.keystore}' -storepass ${trust.password} -noprompt
+#rm rootca.der
+
 
   # Run the script to create the CA
   script=$(mktemp)
   chmod a+rx "${script}"
   echo '#!/bin/bash' >"${script}"
   flags=""
-  for f in $(find "${EJBCA_VAULTDIR}" -type f -name \*.properties); do
+  for f in $(find "${EJBCA_SECRETDIR}" -type f -name \*.properties); do
     flags="${flags} $(cat "$f" | awk 'NF {print "-D" $0}')"
   done
   echo -n "ant runinstall " >>"${script}"
@@ -144,130 +90,225 @@ ejbca_create_ca() {
 }
 
 #
-# ejbca_deploy()
-#   Perform required EJBCA deployment steps
+# ejbca_init()
+#   Initializes and deploys EJBCA if it has not been set up already
 #
-ejbca_deploy() {
-  # Already initialized
-  if [ -f "${EJBCA_INITDIR}/deploy" ]; then
-    return 0
-  fi
+ejbca_init() {
+  echo "Initializing EJBCA server..."
 
-  # Create log file
-  touch "${EJBCA_LOG}"
-  chown wildfly:wildfly "${EJBCA_LOG}"
+  ejbca_startup_check
+  ejbca_init_vars
+  wildfly_init
+  wildfly_start_bg
+  #ejbca_create_ca
+  wildfly_stop
 
-  # Deploy EJBCA
-  echo "  Deploying EJBCA to Wildfly..."
-  pushd "${EJBCA_HOME}" >/dev/null 2>&1
-  su-exec wildfly ant deployear >"${EJBCA_LOG}" 2>&1
-  sleep 3
-  wildfly_wait 60 "deployment-info --name=ejbca.ear" "true    OK"
-  echo "    --> EJBCA deployment complete."
-
-  # Create the CA
-  ejbca_create_ca
-
-  # Complete
-  touch "${EJBCA_INITDIR}/deploy"
-  popd >/dev/null 2>&1
+  echo "EJBCA server initialized."
   return 0
 }
 
 #
-# ejbca_get_prop(type, property)
-#   Returns the value of the EJBCA 'property' from the 'type'.properties file and stores the value in a variable
-#   called 'type'_'property'
+# ejbca_init_vars()
+#   Initializes all EJBCA environment variables
 #
-ejbca_get_prop() {
-  type=$1
-  property=$2
-  value=""
-
-  if [ -f "${EJBCA_VAULTDIR}/${type}.properties" ]; then
-    value="$(grep "${type}.${property}" "${EJBCA_VAULTDIR}/${type}.properties" | awk -F"=" '{print $2}')"
+ejbca_init_vars() {
+  # Set up MySQL variables
+  if [[ -z "${MYSQL_CONNECTION_URL}" ]]; then
+    export MYSQL_CONNECTION_URL="mysql://mariadb:3306/ejbca"
   fi
-  eval "${type}_${property}=${value}"
+  if [[ -z "${MYSQL_USERNAME}" ]]; then
+    if [[ -z "${MYSQL_USERNAME_SECRET}" ]]; then
+      export MYSQL_USERNAME="ejbca"
+    else
+      ejbca_read_secret MYSQL_USERNAME_SECRET MYSQL_USERNAME
+    fi
+  fi
+  if [[ -z "${MYSQL_PASSWORD}" ]]; then
+    if [[ -z "${MYSQL_PASSWORD_SECRET}" ]]; then
+      echo "MYSQL_PASSWORD or MYSQL_PASSWORD_SECRET environment variable must be set."
+      exit 1
+    else
+      ejbca_read_secret MYSQL_PASSWORD_SECRET MYSQL_PASSWORD
+    fi
+  fi
+
+  # Setup WildFly variables
+  if [[ -z "${WILDFLY_SERVER_CN}" ]]; then
+    export WILDFLY_SERVER_CN="ejbca"
+  fi
+  if [[ -z "${WILDFLY_SERVER_ALT_NAMES}" ]]; then
+    export WILDFLY_SERVER_ALT_NAMES=""
+  fi
+  if [[ -z "${WILDFLY_STOREPASS}" ]]; then
+    if [[ -z "${WILDFLY_STOREPASS_SECRET}" ]]; then
+      export WILDFLY_STOREPASS="changeit"
+    else
+      ejbca_read_secret WILDFLY_STOREPASS_SECRET WILDFLY_STOREPASS
+    fi
+  fi
+  if [[ -z "${WILDFLY_TRUSTSTOREPASS}" ]]; then
+    if [[ -z "${WILDFLY_TRUSTSTOREPASS_SECRET}" ]]; then
+      export WILDFLY_TRUSTSTOREPASS="changeit"
+    else
+      ejbca_read_secret WILDFLY_TRUSTSTOREPASS_SECRET WILDFLY_TRUSTSTOREPASS
+    fi
+  fi
+
+  # Setup SMTP server variables
+  if [[ -z "${SMTPSERVER_ENABLED}" ]]; then
+    export SMTPSERVER_ENABLED="false"
+  fi
+  if [[ "${SMTPSERVER_ENABLED}" == "true" ]]; then
+    if [[ -z "${SMTPSERVER_FROM}" ]]; then
+      export SMTPSERVER_FROM="ejbca-noreply@ejbca"
+    fi
+    if [[ -z "${SMTPSERVER_USE_TLS}" ]]; then
+      export SMTPSERVER_USE_TLS="false"
+    fi
+    if [[ -z "${SMTPSERVER_HOST}" ]]; then
+      export SMTPSERVER_HOST="smtp"
+    fi
+    if [[ -z "${SMTPSERVER_PORT}" ]]; then
+      export SMTPSERVER_PORT=25
+    fi
+    if [[ -z "${SMTPSERVER_AUTH_REQUIRED}" ]]; then
+      export SMTPSERVER_AUTH_REQUIRED="false"
+    fi
+    if [[ "${SMTPSERVER_AUTH_REQUIRED}" == "true" ]]; then
+      if [[ -z "${SMTPSERVER_USERNAME}" ]]; then
+        if [[ -z "${SMTPSERVER_USERNAME_SECRET}" ]]; then
+          export SMTPSERVER_USERNAME="ejbca"
+        else
+          ejbca_read_secret SMTPSERVER_USERNAME_SECRET SMTPSERVER_USERNAME
+        fi
+      fi
+      if [[ -z "${SMTPSERVER_PASSWORD}" ]]; then
+        if [[ -z "${SMTPSERVER_PASSWORD_SECRET}" ]]; then
+          echo "SMTPSERVER_PASSWORD or SMTPSERVER_PASSWORD_SECRET environment variable must be set."
+          exit 1
+        else
+          ejbca_read_secret SMTPSERVER_PASSWORD_SECRET SMTPSERVER_PASSWORD
+        fi
+      fi
+    fi
+  fi
+
+  # Setup CA server variables
+  if [[ -z "${CA_NAME}" ]]; then
+    export CA_NAME="Root Certificate Authority"
+  fi
+  if [[ -z "${CA_DN}" ]]; then
+    export CA_DN="CN=Root Certificate Authority"
+  fi
+  if [[ -z "${CA_KEYTYPE}" ]]; then
+    export CA_KEYTYPE="RSA"
+  fi
+  if [[ -z "${CA_KEYSPEC}" ]]; then
+    export CA_KEYSPEC=2048
+  fi
+  if [[ -z "${CA_SIGNATUREALGORITHM}" ]]; then
+    export CA_SIGNATUREALGORITHM="SHA256WithRSA"
+  fi
+  if [[ -z "${CA_VALIDITY}" ]]; then
+    export CA_VALIDITY=7300
+  fi
+  if [[ -z "${CA_POLICY}" ]]; then
+    export CA_POLICY="null"
+  fi
+  if [[ -z "${CA_PASSWORD}" ]]; then
+    if [[ -z ${CA_PASSWORD_SECRET} ]]; then
+      export CA_PASSWORD="changeit"
+    else
+      ejbca_read_secret CA_PASSWORD_SECRET CA_PASSWORD
+    fi
+  fi
+
+  # Setup SuperAdmin user variables
+  if [[ -z "${SUPERADMIN_CN}" ]]; then
+    if [[ -z ${SUPERADMIN_CN_SECRET} ]]; then
+      export SUPERADMIN_CN="admin"
+    else
+      ejbca_read_secret SUPERADMIN_CN_SECRET SUPERADMIN_CN
+    fi
+  fi
+  if [[ -z "${SUPERADMIN_DN}" ]]; then
+    if [[ -z ${SUPERADMIN_DN_SECRET} ]]; then
+      export SUPERADMIN_DN="CN=admin"
+    else
+      ejbca_read_secret SUPERADMIN_DN_SECRET SUPERADMIN_DN
+    fi
+  fi
+  if [[ -z "${SUPERADMIN_PASSWORD}" ]]; then
+    if [[ -z ${SUPERADMIN_PASSWORD_SECRET} ]]; then
+      export SUPERADMIN_PASSWORD="changeit"
+    else
+      ejbca_read_secret SUPERADMIN_PASSWORD_SECRET SUPERADMIN_PASSWORD
+    fi
+  fi
+  return 0  
+}
+
+#
+# ejbca_read_secret($secret, $store_as)
+#   Reads the file that the given $secret environment variable points to and return the value as the $store_as variable
+#
+ejbca_read_secret() {
+  secret=$1
+  store_as=$2
+
+  # Make sure the file exists
+  secret_file=$(eval "echo \$${secret}")
+  if [ ! -f "${secret_file}" ]; then
+    echo "Cannot find ${secret} file '${secret_file}'."
+    exit 1
+  fi
+
+  # Store the value
+  value=$(cat "${secret_file}")
+  eval "${store_as}=\"${value}\""
   return 0
 }
 
 #
-# ejbca_post_deploy()
-#   Perform required EJBCA post-deployment steps
+# ejbca_start()
+#   Starts the EJBCA server
 #
-ejbca_post_deploy() {
-  # Get properties
-  ejbca_get_prop httpsserver password
-  ejbca_get_prop httpsserver hostname
-  ejbca_get_prop java trustpassword
-  ejbca_get_prop smtpserver enabled
-  ejbca_get_prop smtpserver port
-  ejbca_get_prop smtpserver host
-  ejbca_get_prop smtpserver from
-  ejbca_get_prop smtpserver user
-  ejbca_get_prop smtpserver password
-  ejbca_get_prop smtpserver use_tls
+ejbca_start() {
+  wildfly_start
+}
 
-  # Configure SMTP credentials
-  smtpserver_credentials=""
-  if [ "${smtpserver_user}" != "" ]; then
-    smtpserver_credentials+=", username=\"${smtpserver.user}\""
+#
+# ejbca_startup_check()
+#   Ensures folders and files required to start EJBCA exist and have the correct permissions
+#
+ejbca_startup_check() {
+  # Make sure folders exist
+  if [ ! -d "${EJBCA_DATADIR}/conf" ]; then
+    mkdir -p "${EJBCA_DATADIR}/conf"
+    find "${EJBCA_HOME}/conf.dist" -name \*.properties | xargs cp -t "${EJBCA_DATADIR}/conf/"
   fi
-  if [ "${smtpserver_password}" != "" ]; then
-    smtpserver_credentials+=", password=\"${smtpserver.password}\""
-  fi
-
-  # Run the scripts
-  for cli_file in $(find /usr/local/lib/ejbca/postdeploy -type f -name \*.cli | sort); do
-    i=$(basename "${cli_file}" .cli)
-    init_file="${EJBCA_INITDIR}/postdeploy_$i"
-    if [ ! -f "${init_file}" ]; then
-      echo "  Running EJBCA post-deployment script #$i..."
-
-      # Replace variables in the script
-      script=$(mktemp)
-      sed -e "s|%httpsserver.password%|${httpsserver_password}|g" "${cli_file}" > "${script}"
-      sed -i -e "s|%httpsserver.hostname%|${httpsserver_hostname}|g" "${script}"
-      sed -i -e "s|%java.trustpassword%|${java_trustpassword}|g" "${script}"
-      sed -i -e "s|%smtpserver.enabled%|${smtpserver_enabled}|g" "${script}"
-      sed -i -e "s|%smtpserver.port%|${smtpserver_port}|g" "${script}"
-      sed -i -e "s|%smtpserver.host%|${smtpserver_host}|g" "${script}"
-      sed -i -e "s|%smtpserver.from%|${smtpserver_from}|g" "${script}"
-      sed -i -e "s|%smtpserver.credentials%|${smtpserver_credentials}|g" "${script}"
-      sed -i -e "s|%smtpserver.use_tls%|${smtpserver_use_tls}|g" "${script}"
-
-      # Run the script and wait for Wildfly to be ready again
-      "${APPSRV_HOME}/bin/jboss-cli.sh" -c --file="${script}" >>"${WILDFLY_LOG}" 2>&1 && \
-      touch "${init_file}"
-      rm -f "${script}"
-      wildfly_wait 60 ":read-attribute(name=server-state)" "running"
+  for dir in keystore conf/logdevices conf/plugins; do
+    if [ ! -d "${EJBCA_DATADIR}/${dir}" ]; then
+      mkdir -p "${EJBCA_DATADIR}/${dir}"
     fi
   done
+
+  # Make sure permissions are correct
+  chown -hR wildfly:wildfly "${EJBCA_DATADIR}"
+  chmod 0750 "${EJBCA_DATADIR}"
   return 0
 }
 
 #
-# ejbca_pre_deploy()
-#   Perform required EJBCA pre-deployment steps
+# ejbca_update_config()
+#   Regenerates the WildFly standalone.xml configuration file based on the current environment variables
 #
-ejbca_pre_deploy() {
-  # Run the scripts
-  for cli_file in $(find /usr/local/lib/ejbca/predeploy -type f -name \*.cli | sort); do
-    i=$(basename "${cli_file}" .cli)
-    init_file="${EJBCA_INITDIR}/predeploy_$i"
-    if [ ! -f "${init_file}" ]; then
-      echo "  Running EJBCA pre-deployment script #$i..."
-
-      # Replace variables in the script
-      script=$(mktemp)
-      sed -e "s|%mysql.ejbca_password%|$(cat "${MYSQL_VAULTDIR}/ejbca")|g" "${cli_file}" > "${script}"
-
-      # Run the script and wait for Wildfly to be ready again
-      "${APPSRV_HOME}/bin/jboss-cli.sh" -c --file="${script}" >>"${WILDFLY_LOG}" 2>&1 && \
-      touch "${init_file}"
-      rm -f "${script}"
-      wildfly_wait 60 ":read-attribute(name=server-state)" "running"
-    fi
-  done
+ejbca_update_config() {
+  echo "Regenerating WildFly standalone.xml file..."
+  ejbca_startup_check
+  wildfly_startup_check
+  ejbca_init_vars
+  wildfly_create_config
+  echo "A new standalone.xml file has been generated."
   return 0
 }

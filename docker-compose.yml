@@ -8,3 +8,83 @@ services:
   ejbca:
     build: .
     image: dataknightllc/ejbca:latest
+
+    container_name: ejbca
+    volumes:
+      - W:\tmp\secrets:/run/secrets
+      - W:\tmp\ejbca:/var/lib/ejbca
+    environment:
+      TZ: ${TZ:-UTC}
+      
+      MYSQL_CONNECTION_URL: mysql://mariadb:3306/ejbca
+      MYSQL_USERNAME: ejbca
+      MYSQL_USERNAME_SECRET: /run/secrets/ejbca.mysql_username
+      MYSQL_PASSWORD: letmein1
+      MYSQL_PASSWORD_SECRET: /run/secrets/ejbca.mysql_password
+
+      WILDFLY_SERVER_CN: ejbca
+      WILDFLY_SERVER_ALT_NAMES: 
+      #WILDFLY_STOREPASS_SECRET: /run/secrets/ejbca.wildfly_storepass
+      #WILDFLY_TRUSTSTOREPASS_SECRET: /run/secrets/ejbca.wildfly_truststorepass
+
+      SMTPSERVER_ENABLED: "true"
+      SMTPSERVER_FROM: ejbca-noreply@ejbca
+      SMTPSERVER_USE_TLS: "false"
+      SMTPSERVER_HOST: smtp
+      SMTPSERVER_PORT: 25
+      SMTPSERVER_AUTH_REQUIRED: "true"
+      SMTPSERVER_USERNAME: josh
+      SMTPSERVER_PASSWORD: testing
+      #SMTPSERVER_USERNAME_SECRET: /run/secrets/ejbca.smtpserver_username
+      #SMTPSERVER_PASSWORD_SECRET: /run/secrets/ejbca.smtpserver_password
+
+      CA_NAME: Root Certificate Authority
+      CA_DN: CN=Root Certificate Authority
+      CA_KEYTYPE: RSA
+      CA_KEYSPEC: 2048
+      CA_SIGNATUREALGORITHM: SHA256WithRSA
+      CA_VALIDITY: 7300
+      CA_POLICY: "null"
+      #CA_PASSWORD_SECRET: /run/secrets/ejbca.ca_password
+
+      #SUPERADMIN_CN_SECRET: /run/secrets/ejbca.superadmin_cn
+      #SUPERADMIN_DN_SECRET: /run/secrets/ejbca.superadmin_dn
+      #SUPERADMIN_PASSWORD_SECRET: /run/secrets/ejbca.superadmin_password
+    networks:
+      - ejbca
+    ports:
+      - 8080:8080
+      - 8442:8442
+      - 8443:8443
+
+  mariadb:
+    container_name: mariadb
+    image: dataknightllc/mariadb:stable
+    volumes:
+      - W:\tmp\mysql:/var/lib/mysql
+      - W:\tmp\secrets:/run/secrets
+    ports:
+      - 3306:3306
+    environment:
+      TZ: ${TZ:-UTC}
+      MYSQL_DATA_DIR: /var/lib/mysql
+      MYSQL_ROOT_SECRET: /run/secrets/mysql.root
+      MYSQL_ROOT_ALLOWED_HOSTS: "%"
+    networks:
+      - ejbca
+
+  httpd:
+    container_name: httpd
+    image: dataknightllc/apache-http:stable
+    volumes:
+      - W:\tmp\httpd:/etc/apache2/conf.d
+    ports:
+      - 8080:80
+      - 4443:443
+    environment:
+      TZ: ${TZ:-UTC}
+    networks:
+      - ejbca
+
+networks:
+  ejbca:

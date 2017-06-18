@@ -1,9 +1,0 @@
-/subsystem=logging/logger=org.ejbca:add
-/subsystem=logging/logger=org.ejbca:write-attribute(name=level, value=DEBUG)
-/subsystem=logging/logger=org.cesecore:add
-/subsystem=logging/logger=org.cesecore:write-attribute(name=level, value=DEBUG)
-/subsystem=undertow/server=default-server/http-listener=default:remove
-/subsystem=undertow/server=default-server/https-listener=https:remove
-/socket-binding-group=standard-sockets/socket-binding=http:remove
-/socket-binding-group=standard-sockets/socket-binding=https:remove
-:reload
