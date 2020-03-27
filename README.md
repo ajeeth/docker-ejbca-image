@@ -1,8 +1,6 @@
 ## EJBCA PKI Server
 This is an image for running your own [EJBCA PKI](https://www.ejbca.org) server.
 
-[![build](https://circleci.com/gh/dataknightllc/docker-ejbca-image/tree/master.svg?style=shield&circle-token=f6ca71486c51971be9e2dbb5e07730c792b0aa89)](https://circleci.com/gh/dataknightllc/docker-ejbca-image/tree/master)
-
 ### Prerequisites
 - Install [Docker Compose](https://github.com/docker/compose) on the system.
 - Review the documentation for [EJBCA PKI](https://www.ejbca.org/docs/index.html) for details on how to configure and
