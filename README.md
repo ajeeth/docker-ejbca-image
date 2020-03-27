@@ -229,5 +229,4 @@ If you have issues, be sure to check the log files in the **/var/log** folder fo
 will be stored in the **wildfly.log** file.
 
 ### Additional Help or Questions
-If you have questions, find bugs or need additional help, please send an email to 
-[support@dataknight.co](mailto:support@dataknight.co).
+If you have questions, find bugs or need additional help, please open an issue on github
